@@ -1,4 +1,4 @@
-# Invoicing ROI Simulator — 3-Hour Prototype
+# Invoicing ROI Simulator
 
 A lightweight calculator that shows **cost savings, payback, and ROI** when moving from manual to automated invoicing. Built for speed: **React + TypeScript** SPA, **Node.js + Express** API, **MySQL** persistence, and an **email-gated report**.
 
