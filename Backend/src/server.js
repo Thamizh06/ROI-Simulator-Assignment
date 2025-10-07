@@ -131,6 +131,17 @@ app.get('/scenarios', async (_req, res) => {
   }
 });
 
+function toObject(v) {
+  if (Buffer.isBuffer(v)) {
+    const s = v.toString('utf8');
+    try { return JSON.parse(s); } catch { return s; }
+  }
+  if (typeof v === 'string') {
+    try { return JSON.parse(v); } catch { return v; }
+  }
+  return v; // already an object
+}
+
 // GET /scenarios/:id -> get full scenario
 app.get('/scenarios/:id', async (req, res) => {
   const p = IdParamSchema.safeParse({ id: req.params.id });
@@ -141,8 +152,8 @@ app.get('/scenarios/:id', async (req, res) => {
     if (rows.length === 0) return res.status(404).json({ error: 'Not found' });
 
     const row = rows[0];
-    row.inputs = JSON.parse(row.inputs);
-    row.results = JSON.parse(row.results);
+    row.inputs = toObject(row.inputs);
+    row.results = toObject(row.results);
     res.json(row);
   } catch (e) {
     console.error(e);
@@ -209,3 +220,4 @@ const port = +process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`ROI API listening on :${port}`);
 });
+
