@@ -18,6 +18,7 @@ const app = express();
  * - Expose Content-Disposition (for /report/generate download)
  */
 const DEFAULT_ALLOWLIST = [
+  
   'https://quant-payback.vercel.app',
   'http://localhost:3000',         // local dev front-end (optional)
   'http://127.0.0.1:3000'          // local dev front-end (optional)
@@ -28,19 +29,15 @@ const ALLOWLIST = (process.env.CORS_ORIGINS
   : DEFAULT_ALLOWLIST
 );
 
+
 // Build per-request origin check
 const corsOptions = {
-  origin(origin, callback) {
-    // Allow non-browser tools / same-origin / curl (no Origin header)
-    if (!origin) return callback(null, true);
-    if (ALLOWLIST.includes(origin)) return callback(null, true);
-    return callback(new Error(`CORS: Origin ${origin} not allowed`));
-  },
+  origin: '*',
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Content-Disposition'],
-  credentials: true,                 // keep if you use cookies/auth headers
-  optionsSuccessStatus: 204          // successful preflight status
+  credentials: false,   // must be false when origin is '*'
+  optionsSuccessStatus: 204
 };
 
 // Helpful for caches/CDNs and proxies
@@ -56,6 +53,7 @@ app.use(cors(corsOptions));
 
 // Make sure all preflight requests are handled
 app.options('*', cors(corsOptions));
+
 /* ---- end CORS ---- */
 
 app.use(express.json({ limit: '1mb' }));
@@ -220,4 +218,5 @@ const port = +process.env.PORT || 4000;
 app.listen(port, () => {
   console.log(`ROI API listening on :${port}`);
 });
+
 
