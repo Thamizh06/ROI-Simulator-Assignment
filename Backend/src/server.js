@@ -10,17 +10,63 @@ import { getConnection } from './db.js';
 
 const app = express();
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN?.split(',') || '*',
-  credentials: false
-}));
+/**
+ * ---- CORS (only changes here) ----
+ * - Dynamic allowlist (env or defaults)
+ * - Proper preflight handling for all routes
+ * - Vary headers for caches/CDNs
+ * - Expose Content-Disposition (for /report/generate download)
+ */
+const DEFAULT_ALLOWLIST = [
+  'https://quant-payback.vercel.app',
+  'http://localhost:3000',         // local dev front-end (optional)
+  'http://127.0.0.1:3000'          // local dev front-end (optional)
+];
+
+const ALLOWLIST = (process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',').map(s => s.trim()).filter(Boolean)
+  : DEFAULT_ALLOWLIST
+);
+
+// Build per-request origin check
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow non-browser tools / same-origin / curl (no Origin header)
+    if (!origin) return callback(null, true);
+    if (ALLOWLIST.includes(origin)) return callback(null, true);
+    return callback(new Error(`CORS: Origin ${origin} not allowed`));
+  },
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Disposition'],
+  credentials: true,                 // keep if you use cookies/auth headers
+  optionsSuccessStatus: 204          // successful preflight status
+};
+
+// Helpful for caches/CDNs and proxies
+app.use((req, res, next) => {
+  res.header('Vary', 'Origin');
+  res.append('Vary', 'Access-Control-Request-Method');
+  res.append('Vary', 'Access-Control-Request-Headers');
+  next();
+});
+
+// Apply CORS to all routes
+app.use(cors(corsOptions));
+
+// Make sure all preflight requests are handled
+app.options('*', cors(corsOptions));
+/* ---- end CORS ---- */
+
 app.use(express.json({ limit: '1mb' }));
+
 (async () => {
   const conn = await getConnection();
   await conn.ping();
   conn.release();
   console.log('MySQL ping OK');
 })();
+
 // Health
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
